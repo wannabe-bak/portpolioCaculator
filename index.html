@@ -3,107 +3,119 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>자산 비중 계산기</title>
+  <title>포트폴리오 계산기</title>
   <style>
     * { box-sizing: border-box; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f0f4f8; margin: 0; padding: 15px; }
     .container { max-width: 480px; margin: 0 auto; background: white; border-radius: 16px; padding: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
     h1 { text-align: center; color: #1a73e8; margin-bottom: 4px; font-size: 22px; }
-    .subtitle { text-align: center; color: #666; margin-top: 0; margin-bottom: 20px; font-size: 14px; }
+    .subtitle { text-align: center; color: #666; margin-top: 0; margin-bottom: 16px; font-size: 14px; }
 
-    .save-badge {
-      display: flex; align-items: center; justify-content: center; gap: 6px;
-      font-size: 12px; color: #888; margin-bottom: 16px;
-    }
+    /* 저장 상태 */
+    .save-badge { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; color: #888; margin-bottom: 14px; }
     .save-dot { width: 8px; height: 8px; border-radius: 50%; background: #ccc; transition: background 0.3s; }
     .save-dot.saved { background: #34a853; }
     .save-dot.saving { background: #fbbc04; }
 
-    .slider-section {
-      background: #f8f9fa; border: 2px solid #e0e0e0; border-radius: 12px;
-      padding: 14px 16px; margin-bottom: 20px;
-    }
-    .slider-title { font-size: 14px; font-weight: 700; color: #333; margin-bottom: 12px; }
-    .slider-labels { display: flex; justify-content: space-between; margin-bottom: 6px; }
-    .slider-label-risk { font-size: 13px; font-weight: 700; color: #1a73e8; }
-    .slider-label-safe { font-size: 13px; font-weight: 700; color: #7c5cbf; }
-    .slider-value-row  { display: flex; justify-content: space-between; margin-bottom: 8px; }
-    .val-risk { font-size: 22px; font-weight: 800; color: #1a73e8; }
-    .val-safe { font-size: 22px; font-weight: 800; color: #7c5cbf; }
+    /* 슬라이더 공통 */
+    .slider-section { background: #f8f9fa; border: 2px solid #e0e0e0; border-radius: 12px; padding: 14px 16px; margin-bottom: 14px; }
+    .slider-title { font-size: 14px; font-weight: 700; color: #333; margin-bottom: 10px; }
+    .slider-labels { display: flex; justify-content: space-between; margin-bottom: 4px; }
+    .slider-value-row { display: flex; justify-content: space-between; margin-bottom: 6px; }
 
-    .slider-wrap { position: relative; height: 36px; display: flex; align-items: center; }
-    .slider-track-bg {
-      position: absolute; left: 0; right: 0; height: 10px; border-radius: 5px; overflow: hidden; display: flex;
-    }
-    .track-risk { background: #1a73e8; height: 100%; transition: width 0.1s; }
-    .track-safe { background: #7c5cbf; height: 100%; transition: width 0.1s; }
+    .val-risk  { font-size: 22px; font-weight: 800; color: #1a73e8; }
+    .val-hedge { font-size: 22px; font-weight: 800; color: #e8a100; }
+    .val-safe  { font-size: 22px; font-weight: 800; color: #7c5cbf; }
+    .lbl-risk  { font-size: 13px; font-weight: 700; color: #1a73e8; }
+    .lbl-hedge { font-size: 13px; font-weight: 700; color: #e8a100; }
+    .lbl-safe  { font-size: 13px; font-weight: 700; color: #7c5cbf; }
+
+    .slider-wrap { position: relative; height: 36px; display: flex; align-items: center; margin-bottom: 4px; }
+    .slider-track-bg { position: absolute; left: 0; right: 0; height: 10px; border-radius: 5px; overflow: hidden; display: flex; }
+    .track-risk  { background: #1a73e8; height: 100%; }
+    .track-hedge { background: #e8a100; height: 100%; }
+    .track-safe  { background: #7c5cbf; height: 100%; }
+
     input[type=range] {
       -webkit-appearance: none; appearance: none;
       position: relative; z-index: 2; width: 100%; background: transparent; height: 36px; margin: 0;
     }
     input[type=range]::-webkit-slider-thumb {
-      -webkit-appearance: none; width: 28px; height: 28px;
-      border-radius: 50%; background: white;
+      -webkit-appearance: none; width: 28px; height: 28px; border-radius: 50%; background: white;
       border: 3px solid #555; box-shadow: 0 2px 6px rgba(0,0,0,0.25); cursor: pointer;
     }
     input[type=range]::-webkit-slider-runnable-track { background: transparent; height: 10px; }
 
+    .sub-note { font-size: 12px; color: #888; text-align: center; margin-top: 6px; }
+
+    /* 프리셋 */
     .preset-row { display: flex; gap: 6px; margin-top: 10px; flex-wrap: wrap; }
     .preset-btn {
-      flex: 1; min-width: 60px; padding: 6px 4px; border: 1.5px solid #ccc;
-      border-radius: 8px; font-size: 12px; font-weight: 600; background: white;
+      flex: 1; min-width: 55px; padding: 6px 4px; border: 1.5px solid #ccc;
+      border-radius: 8px; font-size: 11px; font-weight: 600; background: white;
       cursor: pointer; text-align: center; color: #555; transition: all 0.15s;
     }
     .preset-btn.active { border-color: #1a73e8; background: #e8f0fe; color: #1a73e8; }
 
+    /* 입력 섹션 */
     .section-label {
       font-size: 13px; font-weight: 700; color: #fff;
-      padding: 6px 12px; border-radius: 8px 8px 0 0;
-      margin-top: 18px; display: block;
+      padding: 6px 12px; border-radius: 8px 8px 0 0; margin-top: 16px; display: block;
     }
-    .section-label.stock-global   { background: #1a73e8; }
-    .section-label.stock-domestic { background: #0d8f6c; }
-    .section-label.safe           { background: #7c5cbf; }
+    .section-label.sg   { background: #1a73e8; }
+    .section-label.sd   { background: #0d8f6c; }
+    .section-label.hdg  { background: #e8a100; }
+    .section-label.safe { background: #7c5cbf; }
 
     .section-box { border: 2px solid; border-radius: 0 8px 8px 8px; padding: 12px; margin-bottom: 4px; }
-    .section-box.stock-global   { border-color: #1a73e8; background: #f0f6ff; }
-    .section-box.stock-domestic { border-color: #0d8f6c; background: #f0fbf6; }
-    .section-box.safe           { border-color: #7c5cbf; background: #f8f4ff; }
+    .section-box.sg   { border-color: #1a73e8; background: #f0f6ff; }
+    .section-box.sd   { border-color: #0d8f6c; background: #f0fbf6; }
+    .section-box.hdg  { border-color: #e8a100; background: #fffbf0; }
+    .section-box.safe { border-color: #7c5cbf; background: #f8f4ff; }
 
     label { display: block; margin: 10px 0 4px; font-size: 14px; font-weight: 600; color: #333; }
     label:first-child { margin-top: 0; }
+
+    .input-row { display: flex; align-items: center; gap: 8px; }
+    .input-row input[type=number] { flex: 1; }
+    .bond-toggle {
+      white-space: nowrap; padding: 8px 10px; border-radius: 8px; font-size: 12px;
+      font-weight: 700; border: 1.5px solid #ccc; background: white; cursor: pointer; color: #555;
+      transition: all 0.2s;
+    }
+    .bond-toggle.risk  { border-color: #1a73e8; background: #e8f0fe; color: #1a73e8; }
+    .bond-toggle.safe  { border-color: #7c5cbf; background: #f0ebff; color: #7c5cbf; }
+
     input[type=number] {
-      width: 100%; padding: 10px 12px; border: 1px solid #ddd;
-      border-radius: 8px; font-size: 16px; background: white;
+      width: 100%; padding: 10px 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 16px; background: white;
     }
     input[type=number]:focus { outline: none; border-color: #1a73e8; }
 
     .subtotal { text-align: right; font-size: 13px; color: #555; margin-top: 8px; padding-top: 6px; border-top: 1px dashed #ccc; }
-    .stock-total-row { text-align: right; font-size: 13px; color: #555; margin: 6px 2px 14px; }
+    .stock-total-row { text-align: right; font-size: 13px; color: #555; margin: 6px 2px 4px; }
     .stock-total-row span { font-weight: 700; color: #1a73e8; }
 
     .btn-row { display: flex; gap: 8px; margin-top: 20px; }
-    button.calc-btn {
-      flex: 1; padding: 14px; background: #1a73e8; color: white;
-      border: none; border-radius: 10px; font-size: 17px; font-weight: 700; cursor: pointer;
-    }
+    button.calc-btn { flex: 1; padding: 14px; background: #1a73e8; color: white; border: none; border-radius: 10px; font-size: 17px; font-weight: 700; cursor: pointer; }
     button.calc-btn:active { background: #1558b0; }
-    button.reset-btn {
-      padding: 14px 16px; background: #f1f3f4; color: #555;
-      border: none; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer;
-    }
+    button.reset-btn { padding: 14px 16px; background: #f1f3f4; color: #555; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; }
     button.reset-btn:active { background: #e0e0e0; }
 
+    /* 결과 */
     .result { margin-top: 16px; padding: 16px; background: #f8f9fa; border-radius: 12px; }
     .result h3 { margin: 12px 0 6px; font-size: 15px; color: #444; }
     .result h3:first-child { margin-top: 0; }
     .result p { margin: 4px 0; font-size: 15px; }
 
     .bar-wrap { background: #e0e0e0; border-radius: 8px; height: 14px; margin: 8px 0 12px; overflow: hidden; display: flex; }
-    .bar-sg   { background: #1a73e8; height: 100%; }
-    .bar-sd   { background: #0d8f6c; height: 100%; }
-    .bar-safe { background: #7c5cbf; height: 100%; }
-    .bar-tgt  { background: #e8a100; height: 100%; }
+    .b-sg   { background: #1a73e8; height: 100%; }
+    .b-sd   { background: #0d8f6c; height: 100%; }
+    .b-bc   { background: #1a73e8; height: 100%; opacity: 0.5; } /* 채권-위험 */
+    .b-hdg  { background: #e8a100; height: 100%; }
+    .b-safe { background: #7c5cbf; height: 100%; }
+    .b-tgt-risk  { background: #1a73e8; height: 100%; }
+    .b-tgt-hedge { background: #e8a100; height: 100%; }
+    .b-tgt-safe  { background: #7c5cbf; height: 100%; }
 
     .legend { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
     .legend-item { display: flex; align-items: center; gap: 4px; font-size: 12px; }
@@ -111,27 +123,31 @@
 
     .green { color: #137333; font-weight: bold; }
     .red   { color: #c5221f; font-weight: bold; }
+    .orange { color: #e8a100; font-weight: bold; }
     .divider { border: none; border-top: 1px solid #e0e0e0; margin: 12px 0; }
-
     .last-saved { text-align: center; font-size: 11px; color: #bbb; margin-top: 6px; }
+
+    .rebal-box { background: white; border-radius: 8px; padding: 10px 12px; margin-top: 6px; border: 1px solid #e0e0e0; }
+    .rebal-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; font-size: 14px; }
+    .rebal-row .label { color: #555; }
   </style>
 </head>
 <body>
 <div class="container">
   <h1>📊 포트폴리오 계산기</h1>
-  <p class="subtitle">목표 비중을 설정하고 리밸런싱을 확인하세요</p>
+  <p class="subtitle">위험 / 헷지 / 안전 비중을 한눈에</p>
 
   <div class="save-badge">
     <div class="save-dot" id="save_dot"></div>
     <span id="save_status">불러오는 중...</span>
   </div>
 
-  <!-- 슬라이더 -->
+  <!-- 슬라이더 1: 위험 vs 안전 -->
   <div class="slider-section">
-    <div class="slider-title">🎚️ 목표 비중 설정</div>
+    <div class="slider-title">🎚️ 1단계 — 위험 : 안전 비중</div>
     <div class="slider-labels">
-      <span class="slider-label-risk">📈 위험자산 (주식)</span>
-      <span class="slider-label-safe">🛡️ 안전자산</span>
+      <span class="lbl-risk">📈 위험자산</span>
+      <span class="lbl-safe">🛡️ 안전자산</span>
     </div>
     <div class="slider-value-row">
       <span class="val-risk" id="risk_pct">80%</span>
@@ -139,39 +155,79 @@
     </div>
     <div class="slider-wrap">
       <div class="slider-track-bg">
-        <div class="track-risk" id="track_risk" style="width:80%"></div>
-        <div class="track-safe" id="track_safe" style="width:20%"></div>
+        <div class="track-risk" id="tr_risk" style="width:80%"></div>
+        <div class="track-safe" id="tr_safe" style="width:20%"></div>
       </div>
-      <input type="range" id="ratio_slider" min="10" max="95" step="5" value="80" oninput="onSlider(this.value)">
+      <input type="range" id="slider_risk" min="10" max="95" step="5" value="80" oninput="onSlider1(this.value)">
     </div>
     <div class="preset-row">
-      <button class="preset-btn" data-risk="100" onclick="setPreset(100)">100:0<br><small>초공격</small></button>
-      <button class="preset-btn active" data-risk="80" onclick="setPreset(80)">80:20<br><small>공격형</small></button>
-      <button class="preset-btn" data-risk="70" onclick="setPreset(70)">70:30<br><small>성장형</small></button>
-      <button class="preset-btn" data-risk="60" onclick="setPreset(60)">60:40<br><small>균형형</small></button>
-      <button class="preset-btn" data-risk="50" onclick="setPreset(50)">50:50<br><small>중립형</small></button>
+      <button class="preset-btn" data-r="100" onclick="setPreset1(100)">100:0<br><small>초공격</small></button>
+      <button class="preset-btn active" data-r="80" onclick="setPreset1(80)">80:20<br><small>공격형</small></button>
+      <button class="preset-btn" data-r="70" onclick="setPreset1(70)">70:30<br><small>성장형</small></button>
+      <button class="preset-btn" data-r="60" onclick="setPreset1(60)">60:40<br><small>균형형</small></button>
+      <button class="preset-btn" data-r="50" onclick="setPreset1(50)">50:50<br><small>중립형</small></button>
     </div>
   </div>
 
-  <!-- 입력 -->
-  <span class="section-label stock-global">🌎 해외주식</span>
-  <div class="section-box stock-global">
+  <!-- 슬라이더 2: 헷지 비중 (위험 내) -->
+  <div class="slider-section">
+    <div class="slider-title">🎚️ 2단계 — 위험자산 내 헷지 비중</div>
+    <div class="slider-labels">
+      <span class="lbl-risk">📈 순수주식</span>
+      <span class="lbl-hedge">🏅 헷지자산</span>
+    </div>
+    <div class="slider-value-row">
+      <span class="val-risk" id="pure_pct">80%</span>
+      <span class="val-hedge" id="hedge_pct">20%</span>
+    </div>
+    <div class="slider-wrap">
+      <div class="slider-track-bg">
+        <div class="track-risk"  id="tr_pure"  style="width:80%"></div>
+        <div class="track-hedge" id="tr_hedge" style="width:20%"></div>
+      </div>
+      <input type="range" id="slider_hedge" min="0" max="50" step="5" value="20" oninput="onSlider2(this.value)">
+    </div>
+    <div class="sub-note" id="final_split">→ 전체 기준: 순수주식 <b id="fs_stock">64%</b> / 헷지 <b id="fs_hedge">16%</b> / 안전 <b id="fs_safe">20%</b></div>
+  </div>
+
+  <!-- 해외주식 -->
+  <span class="section-label sg">🌎 해외주식</span>
+  <div class="section-box sg">
     <label>해외주식 평가액</label>
     <input type="number" id="sg" placeholder="0" oninput="live()">
   </div>
 
-  <span class="section-label stock-domestic">🇰🇷 국내주식</span>
-  <div class="section-box stock-domestic">
+  <!-- 국내주식 -->
+  <span class="section-label sd">🇰🇷 국내주식</span>
+  <div class="section-box sd">
     <label>국내주식 평가액</label>
     <input type="number" id="sd" placeholder="0" oninput="live()">
   </div>
 
-  <div class="stock-total-row">주식 합계: <span id="stock_sum">0원</span></div>
+  <div class="stock-total-row">순수주식 합계: <span id="stock_sum">0원</span></div>
 
+  <!-- 헷지자산 -->
+  <span class="section-label hdg">🏅 헷지자산</span>
+  <div class="section-box hdg">
+    <label>금 / 금ETF</label>
+    <input type="number" id="gold" placeholder="0" oninput="live()">
+    <label>달러 / 달러ETF</label>
+    <input type="number" id="dollar" placeholder="0" oninput="live()">
+    <label>인버스ETF</label>
+    <input type="number" id="inverse" placeholder="0" oninput="live()">
+    <div class="subtotal">헷지자산 합계: <span id="hedge_sum">0원</span></div>
+  </div>
+
+  <!-- 안전자산 -->
   <span class="section-label safe">🛡️ 안전자산</span>
   <div class="section-box safe">
-    <label>채권 / 채권ETF</label>
-    <input type="number" id="bond" placeholder="0" oninput="live()">
+    <label>채권 / 채권ETF
+      <span style="font-size:11px; font-weight:400; color:#888; margin-left:4px;">— 어디에 분류할까요?</span>
+    </label>
+    <div class="input-row">
+      <input type="number" id="bond" placeholder="0" oninput="live()">
+      <button class="bond-toggle safe" id="bond_toggle" onclick="toggleBond()">🛡️ 안전</button>
+    </div>
     <label>청년미래적금 잔고</label>
     <input type="number" id="saving" placeholder="0" oninput="live()">
     <div class="subtotal">안전자산 합계: <span id="safe_sum">0원</span></div>
@@ -179,7 +235,7 @@
 
   <div class="btn-row">
     <button class="calc-btn" onclick="calculate()">비중 계산하기</button>
-    <button class="reset-btn" onclick="resetAll()" title="초기화">🗑️ 초기화</button>
+    <button class="reset-btn" onclick="resetAll()">🗑️</button>
   </div>
   <div class="last-saved" id="last_saved"></div>
 
@@ -187,171 +243,239 @@
 </div>
 
 <script>
-  var targetRisk = 80;
+  var tRisk = 80;       // 위험 목표 %
+  var tHedgeInRisk = 20; // 위험 내 헷지 %
+  var bondIsRisk = false; // 채권 분류 (false=안전, true=위험)
   var saveTimer = null;
-  var STORAGE_KEY = 'portfolio_calc_v1';
+  var STORAGE_KEY = 'portfolio_calc_v2';
 
   function v(id) { return parseFloat(document.getElementById(id).value) || 0; }
   function fmt(n) { return Math.round(n).toLocaleString() + '원'; }
+  function pct(n, total) { return total === 0 ? '0.0' : (n / total * 100).toFixed(1); }
 
-  /* ── 저장 / 불러오기 ── */
-  function saveData() {
-    setSaveDot('saving', '저장 중...');
-    var data = {
-      sg: document.getElementById('sg').value,
-      sd: document.getElementById('sd').value,
-      bond: document.getElementById('bond').value,
-      saving: document.getElementById('saving').value,
-      targetRisk: targetRisk,
-      savedAt: new Date().toLocaleString('ko-KR')
-    };
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-      setSaveDot('saved', '자동 저장됨');
-      document.getElementById('last_saved').textContent = '마지막 저장: ' + data.savedAt;
-    } catch(e) {
-      setSaveDot('', '저장 실패 (시크릿 모드?)');
-    }
-  }
-
-  function loadData() {
-    try {
-      var raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) { setSaveDot('', '저장된 데이터 없음'); return; }
-      var data = JSON.parse(raw);
-      if (data.sg)         document.getElementById('sg').value     = data.sg;
-      if (data.sd)         document.getElementById('sd').value     = data.sd;
-      if (data.bond)       document.getElementById('bond').value   = data.bond;
-      if (data.saving)     document.getElementById('saving').value = data.saving;
-      if (data.targetRisk) {
-        targetRisk = data.targetRisk;
-        updateSliderUI();
-        syncPresetButtons();
-      }
-      if (data.savedAt) document.getElementById('last_saved').textContent = '마지막 저장: ' + data.savedAt;
-      setSaveDot('saved', '저장된 데이터 불러옴');
-      live();
-    } catch(e) {
-      setSaveDot('', '불러오기 실패');
-    }
-  }
-
-  function resetAll() {
-    if (!confirm('저장된 금액을 모두 초기화할까요?')) return;
-    ['sg','sd','bond','saving'].forEach(function(id){ document.getElementById(id).value = ''; });
-    localStorage.removeItem(STORAGE_KEY);
-    document.getElementById('output').style.display = 'none';
-    document.getElementById('last_saved').textContent = '';
-    setSaveDot('', '초기화됨');
-    live();
-  }
-
-  function setSaveDot(state, msg) {
-    var dot = document.getElementById('save_dot');
-    dot.className = 'save-dot' + (state ? ' ' + state : '');
-    document.getElementById('save_status').textContent = msg;
-  }
-
-  /* 입력 변경 시 0.8초 디바운스 후 저장 */
-  function scheduleSave() {
-    setSaveDot('saving', '입력 중...');
-    clearTimeout(saveTimer);
-    saveTimer = setTimeout(saveData, 800);
-  }
-
-  /* ── 슬라이더 ── */
-  function onSlider(val) {
-    targetRisk = parseInt(val) >= 95 ? 100 : parseInt(val);
-    updateSliderUI();
-    syncPresetButtons();
+  /* ── 슬라이더 1 (위험:안전) ── */
+  function onSlider1(val) {
+    tRisk = parseInt(val) >= 95 ? 100 : parseInt(val);
+    updateSlider1UI();
+    syncPreset1();
+    updateFinalSplit();
     scheduleSave();
     calculate();
   }
-
-  function updateSliderUI() {
-    var r = targetRisk, s = 100 - r;
-    document.getElementById('risk_pct').textContent = r + '%';
+  function setPreset1(r) { tRisk = r; updateSlider1UI(); syncPreset1(); updateFinalSplit(); scheduleSave(); calculate(); }
+  function updateSlider1UI() {
+    var s = 100 - tRisk;
+    document.getElementById('risk_pct').textContent = tRisk + '%';
     document.getElementById('safe_pct').textContent = s + '%';
-    document.getElementById('track_risk').style.width = r + '%';
-    document.getElementById('track_safe').style.width = s + '%';
-    document.getElementById('ratio_slider').value = r >= 95 ? 95 : r;
+    document.getElementById('tr_risk').style.width = tRisk + '%';
+    document.getElementById('tr_safe').style.width = s + '%';
+    document.getElementById('slider_risk').value = tRisk >= 95 ? 95 : tRisk;
   }
-
-  function syncPresetButtons() {
+  function syncPreset1() {
     document.querySelectorAll('.preset-btn').forEach(function(b) {
-      b.classList.toggle('active', parseInt(b.getAttribute('data-risk')) === targetRisk);
+      b.classList.toggle('active', parseInt(b.getAttribute('data-r')) === tRisk);
     });
   }
 
-  function setPreset(risk) {
-    targetRisk = risk;
-    updateSliderUI();
-    syncPresetButtons();
+  /* ── 슬라이더 2 (헷지 내 비중) ── */
+  function onSlider2(val) {
+    tHedgeInRisk = parseInt(val);
+    updateSlider2UI();
+    updateFinalSplit();
+    scheduleSave();
+    calculate();
+  }
+  function updateSlider2UI() {
+    var pure = 100 - tHedgeInRisk;
+    document.getElementById('pure_pct').textContent  = pure + '%';
+    document.getElementById('hedge_pct').textContent = tHedgeInRisk + '%';
+    document.getElementById('tr_pure').style.width   = pure + '%';
+    document.getElementById('tr_hedge').style.width  = tHedgeInRisk + '%';
+    document.getElementById('slider_hedge').value    = tHedgeInRisk;
+  }
+  function updateFinalSplit() {
+    var stockFinal  = (tRisk * (100 - tHedgeInRisk) / 100).toFixed(1);
+    var hedgeFinal  = (tRisk * tHedgeInRisk / 100).toFixed(1);
+    var safeFinal   = (100 - tRisk).toFixed(1);
+    document.getElementById('fs_stock').textContent = stockFinal + '%';
+    document.getElementById('fs_hedge').textContent = hedgeFinal + '%';
+    document.getElementById('fs_safe').textContent  = safeFinal + '%';
+  }
+
+  /* ── 채권 토글 ── */
+  function toggleBond() {
+    bondIsRisk = !bondIsRisk;
+    var btn = document.getElementById('bond_toggle');
+    if (bondIsRisk) {
+      btn.textContent = '📈 위험'; btn.className = 'bond-toggle risk';
+    } else {
+      btn.textContent = '🛡️ 안전'; btn.className = 'bond-toggle safe';
+    }
+    live();
+  }
+
+  /* ── 실시간 소계 ── */
+  function live() {
+    var sg = v('sg'), sd = v('sd');
+    var gold = v('gold'), dollar = v('dollar'), inverse = v('inverse');
+    var bond = v('bond'), saving = v('saving');
+    document.getElementById('stock_sum').textContent = fmt(sg + sd + (bondIsRisk ? bond : 0));
+    document.getElementById('hedge_sum').textContent = fmt(gold + dollar + inverse);
+    document.getElementById('safe_sum').textContent  = fmt(saving + (!bondIsRisk ? bond : 0));
     scheduleSave();
     calculate();
   }
 
   /* ── 계산 ── */
-  function live() {
-    var sg = v('sg'), sd = v('sd'), bond = v('bond'), saving = v('saving');
-    document.getElementById('stock_sum').textContent = fmt(sg + sd);
-    document.getElementById('safe_sum').textContent  = fmt(bond + saving);
-    scheduleSave();
-    calculate();
-  }
-
   function calculate() {
-    var sg = v('sg'), sd = v('sd'), bond = v('bond'), saving = v('saving');
-    var stock = sg + sd, safe = bond + saving, total = stock + safe;
+    var sg = v('sg'), sd = v('sd');
+    var gold = v('gold'), dollar = v('dollar'), inverse = v('inverse');
+    var bond = v('bond'), saving = v('saving');
+
+    var stockAmt = sg + sd + (bondIsRisk ? bond : 0);
+    var hedgeAmt = gold + dollar + inverse;
+    var safeAmt  = saving + (!bondIsRisk ? bond : 0);
+    var total    = stockAmt + hedgeAmt + safeAmt;
+
     if (total === 0) { document.getElementById('output').style.display = 'none'; return; }
 
-    var sgPct   = +(sg    / total * 100).toFixed(1);
-    var sdPct   = +(sd    / total * 100).toFixed(1);
-    var stPct   = +(stock / total * 100).toFixed(1);
-    var safePct = +(safe  / total * 100).toFixed(1);
-    var tRisk = targetRisk, tSafe = 100 - tRisk;
-    var tStock = total * tRisk / 100, tSafeAmt = total * tSafe / 100;
-    var diff = Math.abs(stock - tStock);
+    // 현재 비중
+    var curStock = +(stockAmt / total * 100).toFixed(1);
+    var curHedge = +(hedgeAmt / total * 100).toFixed(1);
+    var curSafe  = +(safeAmt  / total * 100).toFixed(1);
+    var sgP  = +(sg  / total * 100).toFixed(1);
+    var sdP  = +(sd  / total * 100).toFixed(1);
+    var goldP = +(gold / total * 100).toFixed(1);
+    var dolP  = +(dollar / total * 100).toFixed(1);
+    var invP  = +(inverse / total * 100).toFixed(1);
+    var bondP = +(bond / total * 100).toFixed(1);
+    var savP  = +(saving / total * 100).toFixed(1);
 
-    var action;
-    if      (stock > tStock) action = '<span class="red">주식 ' + fmt(diff) + ' 매도 → 안전자산 편입</span>';
-    else if (stock < tStock) action = '<span class="green">주식 ' + fmt(diff) + ' 추가 매수</span>';
-    else                     action = '현재 비중이 목표와 일치합니다 ✅';
+    // 목표 금액
+    var tStockPct = tRisk * (100 - tHedgeInRisk) / 100;
+    var tHedgePct = tRisk * tHedgeInRisk / 100;
+    var tSafePct  = 100 - tRisk;
+    var tStockAmt = total * tStockPct / 100;
+    var tHedgeAmt = total * tHedgePct / 100;
+    var tSafeAmt  = total * tSafePct  / 100;
+
+    // 리밸런싱 제안
+    var dStock = stockAmt - tStockAmt;
+    var dHedge = hedgeAmt - tHedgeAmt;
+    var dSafe  = safeAmt  - tSafeAmt;
+
+    function rebalRow(label, diff, color) {
+      var sign = diff > 0 ? '▼ ' : '▲ ';
+      var action = diff > 0 ? ' 매도/축소' : ' 매수/확대';
+      var cls = diff > 0 ? 'red' : 'green';
+      if (Math.abs(diff) < 1000) return '<div class="rebal-row"><span class="label">' + label + '</span><span style="color:#34a853">✅ 적정</span></div>';
+      return '<div class="rebal-row"><span class="label">' + label + '</span><span class="' + cls + '">' + sign + fmt(Math.abs(diff)) + action + '</span></div>';
+    }
 
     document.getElementById('output').innerHTML =
       '<h3>📈 현재 포트폴리오</h3>' +
       '<div class="legend">' +
         '<div class="legend-item"><div class="legend-dot" style="background:#1a73e8"></div>해외주식</div>' +
         '<div class="legend-item"><div class="legend-dot" style="background:#0d8f6c"></div>국내주식</div>' +
+        '<div class="legend-item"><div class="legend-dot" style="background:#e8a100"></div>헷지</div>' +
         '<div class="legend-item"><div class="legend-dot" style="background:#7c5cbf"></div>안전자산</div>' +
       '</div>' +
       '<div class="bar-wrap">' +
-        '<div class="bar-sg"   style="width:' + sgPct   + '%"></div>' +
-        '<div class="bar-sd"   style="width:' + sdPct   + '%"></div>' +
-        '<div class="bar-safe" style="width:' + safePct + '%"></div>' +
+        '<div class="b-sg"   style="width:' + sgP   + '%"></div>' +
+        '<div class="b-sd"   style="width:' + sdP   + '%"></div>' +
+        (bondIsRisk ? '<div class="b-bc" style="width:' + bondP + '%"></div>' : '') +
+        '<div class="b-hdg"  style="width:' + curHedge + '%"></div>' +
+        '<div class="b-safe" style="width:' + curSafe  + '%"></div>' +
       '</div>' +
       '<p>총 자산: <strong>' + fmt(total) + '</strong></p>' +
-      '<p>🌎 해외주식: ' + fmt(sg)   + ' <span style="color:#1a73e8">(' + sgPct   + '%)</span></p>' +
-      '<p>🇰🇷 국내주식: ' + fmt(sd)   + ' <span style="color:#0d8f6c">(' + sdPct   + '%)</span></p>' +
-      '<p>📦 주식 합계: <strong>' + fmt(stock) + '</strong> (' + stPct + '%)</p>' +
-      '<p>🛡️ 안전자산: ' + fmt(safe) + ' <span style="color:#7c5cbf">(' + safePct + '%)</span></p>' +
+      '<p>📈 순수주식: ' + fmt(stockAmt) + ' <span style="color:#1a73e8">(' + curStock + '%)</span></p>' +
+      '  <p style="font-size:13px;color:#888;padding-left:12px;">ㄴ 🌎 해외 ' + fmt(sg) + ' (' + sgP + '%) &nbsp; 🇰🇷 국내 ' + fmt(sd) + ' (' + sdP + '%)</p>' +
+      (bondIsRisk ? '  <p style="font-size:13px;color:#888;padding-left:12px;">ㄴ 채권(위험분류) ' + fmt(bond) + ' (' + bondP + '%)</p>' : '') +
+      '<p>🏅 헷지자산: ' + fmt(hedgeAmt) + ' <span style="color:#e8a100">(' + curHedge + '%)</span></p>' +
+      (gold > 0    ? '  <p style="font-size:13px;color:#888;padding-left:12px;">ㄴ 금 ' + fmt(gold) + ' (' + goldP + '%)</p>' : '') +
+      (dollar > 0  ? '  <p style="font-size:13px;color:#888;padding-left:12px;">ㄴ 달러 ' + fmt(dollar) + ' (' + dolP + '%)</p>' : '') +
+      (inverse > 0 ? '  <p style="font-size:13px;color:#888;padding-left:12px;">ㄴ 인버스 ' + fmt(inverse) + ' (' + invP + '%)</p>' : '') +
+      '<p>🛡️ 안전자산: ' + fmt(safeAmt) + ' <span style="color:#7c5cbf">(' + curSafe + '%)</span></p>' +
+      (!bondIsRisk && bond > 0 ? '  <p style="font-size:13px;color:#888;padding-left:12px;">ㄴ 채권(안전분류) ' + fmt(bond) + ' (' + bondP + '%)</p>' : '') +
+      (saving > 0 ? '  <p style="font-size:13px;color:#888;padding-left:12px;">ㄴ 적금 ' + fmt(saving) + ' (' + savP + '%)</p>' : '') +
       '<hr class="divider">' +
-      '<h3>🎯 목표 비중 (' + tRisk + ' : ' + tSafe + ')</h3>' +
+      '<h3>🎯 목표 비중</h3>' +
       '<div class="bar-wrap">' +
-        '<div class="bar-tgt"  style="width:' + tRisk + '%"></div>' +
-        '<div class="bar-safe" style="width:' + tSafe + '%"></div>' +
+        '<div class="b-tgt-risk"  style="width:' + tStockPct.toFixed(1) + '%"></div>' +
+        '<div class="b-tgt-hedge" style="width:' + tHedgePct.toFixed(1) + '%"></div>' +
+        '<div class="b-tgt-safe"  style="width:' + tSafePct.toFixed(1)  + '%"></div>' +
       '</div>' +
-      '<p>주식 목표: ' + fmt(tStock) + ' (' + tRisk + '%)</p>' +
-      '<p>안전자산 목표: ' + fmt(tSafeAmt) + ' (' + tSafe + '%)</p>' +
+      '<p>📈 순수주식 목표: ' + fmt(tStockAmt) + ' (' + tStockPct.toFixed(1) + '%)</p>' +
+      '<p>🏅 헷지자산 목표: ' + fmt(tHedgeAmt) + ' (' + tHedgePct.toFixed(1) + '%)</p>' +
+      '<p>🛡️ 안전자산 목표: ' + fmt(tSafeAmt)  + ' (' + tSafePct.toFixed(1)  + '%)</p>' +
       '<hr class="divider">' +
       '<h3>⚡ 리밸런싱 제안</h3>' +
-      '<p>' + action + '</p>';
+      '<div class="rebal-box">' +
+        rebalRow('📈 순수주식', dStock) +
+        rebalRow('🏅 헷지자산', dHedge) +
+        rebalRow('🛡️ 안전자산', dSafe) +
+      '</div>';
 
     document.getElementById('output').style.display = 'block';
   }
 
-  /* 시작 시 불러오기 */
-  window.addEventListener('DOMContentLoaded', loadData);
+  /* ── 저장/불러오기 ── */
+  function scheduleSave() {
+    setSaveDot('saving', '입력 중...');
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(saveData, 800);
+  }
+  function saveData() {
+    var data = {
+      sg: document.getElementById('sg').value,
+      sd: document.getElementById('sd').value,
+      gold: document.getElementById('gold').value,
+      dollar: document.getElementById('dollar').value,
+      inverse: document.getElementById('inverse').value,
+      bond: document.getElementById('bond').value,
+      saving: document.getElementById('saving').value,
+      tRisk: tRisk, tHedgeInRisk: tHedgeInRisk, bondIsRisk: bondIsRisk,
+      savedAt: new Date().toLocaleString('ko-KR')
+    };
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+      setSaveDot('saved', '자동 저장됨');
+      document.getElementById('last_saved').textContent = '마지막 저장: ' + data.savedAt;
+    } catch(e) { setSaveDot('', '저장 실패'); }
+  }
+  function loadData() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) { setSaveDot('', '저장된 데이터 없음'); return; }
+      var d = JSON.parse(raw);
+      var ids = ['sg','sd','gold','dollar','inverse','bond','saving'];
+      ids.forEach(function(id){ if (d[id] !== undefined) document.getElementById(id).value = d[id]; });
+      if (d.tRisk !== undefined)       { tRisk = d.tRisk; updateSlider1UI(); syncPreset1(); }
+      if (d.tHedgeInRisk !== undefined){ tHedgeInRisk = d.tHedgeInRisk; updateSlider2UI(); }
+      if (d.bondIsRisk !== undefined && d.bondIsRisk !== bondIsRisk) toggleBond();
+      if (d.savedAt) document.getElementById('last_saved').textContent = '마지막 저장: ' + d.savedAt;
+      setSaveDot('saved', '저장된 데이터 불러옴');
+      updateFinalSplit();
+      live();
+    } catch(e) { setSaveDot('', '불러오기 실패'); }
+  }
+  function resetAll() {
+    if (!confirm('모든 데이터를 초기화할까요?')) return;
+    ['sg','sd','gold','dollar','inverse','bond','saving'].forEach(function(id){ document.getElementById(id).value = ''; });
+    if (bondIsRisk) toggleBond();
+    localStorage.removeItem(STORAGE_KEY);
+    document.getElementById('output').style.display = 'none';
+    document.getElementById('last_saved').textContent = '';
+    setSaveDot('', '초기화됨');
+    live();
+  }
+  function setSaveDot(state, msg) {
+    var dot = document.getElementById('save_dot');
+    dot.className = 'save-dot' + (state ? ' ' + state : '');
+    document.getElementById('save_status').textContent = msg;
+  }
+
+  window.addEventListener('DOMContentLoaded', function() { updateFinalSplit(); loadData(); });
 </script>
 </body>
 </html>
