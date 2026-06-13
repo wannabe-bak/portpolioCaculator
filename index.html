@@ -130,6 +130,45 @@
     .rebal-box { background: white; border-radius: 8px; padding: 10px 12px; margin-top: 6px; border: 1px solid #e0e0e0; }
     .rebal-row { display: flex; justify-content: space-between; align-items: center; padding: 4px 0; font-size: 14px; }
     .rebal-row .label { color: #555; }
+
+    /* 동적 슬롯 */
+    .slot-list { display: flex; flex-direction: column; gap: 8px; }
+    .slot-row {
+      display: flex; align-items: center; gap: 6px;
+      background: white; border: 1px solid #e0e0e0; border-radius: 8px; padding: 8px;
+    }
+    .slot-row .slot-name {
+      flex: 1.3; min-width: 0; padding: 8px 10px; border: 1px solid #ddd;
+      border-radius: 6px; font-size: 14px; background: white;
+    }
+    .slot-row .slot-sel {
+      flex: 1.1; min-width: 0; padding: 8px 6px; border: 1px solid #ddd;
+      border-radius: 6px; font-size: 12.5px; background: white; color: #444;
+    }
+    .slot-row .slot-amt {
+      flex: 1.2; min-width: 0; width: auto; padding: 8px 8px;
+      border: 1px solid #ddd; border-radius: 6px; font-size: 14px;
+    }
+    .slot-row input:focus, .slot-row select:focus { outline: none; border-color: #0d8f6c; }
+    .slot-row .slot-del {
+      flex: 0 0 auto; width: 30px; height: 34px; border: none; border-radius: 6px;
+      background: #f1f3f4; color: #999; font-size: 16px; cursor: pointer; line-height: 1;
+    }
+    .slot-row .slot-del:active { background: #e0e0e0; }
+    .slot-add {
+      width: 100%; margin-top: 8px; padding: 9px; border: 1.5px dashed #bbb;
+      border-radius: 8px; background: white; color: #666; font-size: 13px;
+      font-weight: 600; cursor: pointer;
+    }
+    .slot-add:active { background: #f5f5f5; }
+    .slot-add.sd-add  { border-color: #84c5b2; color: #0d8f6c; }
+    .slot-add.sg-add  { border-color: #9cc0f5; color: #1a73e8; }
+    .slot-add.safe-add { border-color: #b9a6e0; color: #7c5cbf; }
+    .slot-empty { font-size: 12px; color: #aaa; text-align: center; padding: 6px 0; }
+
+    /* 섹터/은행 분해 표시 (결과) */
+    .breakdown { padding-left: 12px; }
+    .breakdown p { font-size: 13px; color: #888; margin: 2px 0; }
   </style>
 </head>
 <body>
@@ -193,15 +232,19 @@
   <!-- 해외주식 -->
   <span class="section-label sg">🌎 해외주식</span>
   <div class="section-box sg">
-    <label>해외주식 평가액</label>
-    <input type="number" id="sg" placeholder="0" oninput="live()">
+    <label>해외주식 — 종목별 등록</label>
+    <div class="slot-list" id="sg_slots"></div>
+    <button class="slot-add sg-add" onclick="addSgSlot()">➕ 해외 종목 추가</button>
+    <div class="subtotal">해외주식 합계: <span id="sg_sum">0원</span></div>
   </div>
 
   <!-- 국내주식 -->
   <span class="section-label sd">🇰🇷 국내주식</span>
   <div class="section-box sd">
-    <label>국내주식 평가액</label>
-    <input type="number" id="sd" placeholder="0" oninput="live()">
+    <label>국내주식 — 종목별 등록</label>
+    <div class="slot-list" id="sd_slots"></div>
+    <button class="slot-add sd-add" onclick="addSdSlot()">➕ 국내 종목 추가</button>
+    <div class="subtotal">국내주식 합계: <span id="sd_sum">0원</span></div>
   </div>
 
   <div class="stock-total-row">순수주식 합계: <span id="stock_sum">0원</span></div>
@@ -221,15 +264,20 @@
   <!-- 안전자산 -->
   <span class="section-label safe">🛡️ 안전자산</span>
   <div class="section-box safe">
-    <label>채권 / 채권ETF
+    <label>채권 / 채권ETF — 섹터별 등록
       <span style="font-size:11px; font-weight:400; color:#888; margin-left:4px;">— 어디에 분류할까요?</span>
     </label>
-    <div class="input-row">
-      <input type="number" id="bond" placeholder="0" oninput="live()">
+    <div class="input-row" style="margin-bottom:8px;">
+      <span style="flex:1; font-size:12px; color:#888;">채권 전체를 위험/안전 중 어디로 볼지 선택</span>
       <button class="bond-toggle safe" id="bond_toggle" onclick="toggleBond()">🛡️ 안전</button>
     </div>
-    <label>청년미래적금 잔고</label>
-    <input type="number" id="saving" placeholder="0" oninput="live()">
+    <div class="slot-list" id="bond_slots"></div>
+    <button class="slot-add safe-add" onclick="addBondSlot()">➕ 채권 섹터 추가</button>
+    <div class="subtotal">채권 합계: <span id="bond_sum">0원</span></div>
+
+    <label style="margin-top:14px;">예적금 — 은행별 등록</label>
+    <div class="slot-list" id="saving_slots"></div>
+    <button class="slot-add safe-add" onclick="addSavingSlot()">➕ 은행 추가</button>
     <div class="subtotal">안전자산 합계: <span id="safe_sum">0원</span></div>
   </div>
 
@@ -249,9 +297,118 @@
   var saveTimer = null;
   var STORAGE_KEY = 'portfolio_calc_v2';
 
+  /* ── 동적 슬롯 데이터 ── */
+  // 해외주식: 종목별 슬롯 { name, amt }
+  var sgSlots = [];
+  // 국내주식: 종목별 슬롯 { name, amt }
+  var sdSlots = [];
+  // 채권: 섹터별 슬롯 { name, amt }
+  var bondSlots = [];
+  // 예적금: 은행별 슬롯 { name, type, amt }  type: '청년미래적금' | '2금융권 정기예금'
+  var savingSlots = [];
+  var SAVING_TYPES = ['청년미래적금', '2금융권 정기예금'];
+
   function v(id) { return parseFloat(document.getElementById(id).value) || 0; }
   function fmt(n) { return Math.round(n).toLocaleString() + '원'; }
   function pct(n, total) { return total === 0 ? '0.0' : (n / total * 100).toFixed(1); }
+  function esc(s) { return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  /* ── 슬롯 합계 ── */
+  function slotTotal(arr) { return arr.reduce(function(a, s){ return a + (parseFloat(s.amt) || 0); }, 0); }
+  function sgTotal()     { return slotTotal(sgSlots); }
+  function sdTotal()     { return slotTotal(sdSlots); }
+  function bondTotal()   { return slotTotal(bondSlots); }
+  function savingTotal() { return slotTotal(savingSlots); }
+
+  /* ── 해외주식 슬롯 ── */
+  function addSgSlot(name, amt) {
+    sgSlots.push({ name: name || '', amt: (amt === undefined ? '' : amt) });
+    renderSgSlots(); scheduleSave(); live();
+  }
+  function removeSgSlot(i) { sgSlots.splice(i, 1); renderSgSlots(); scheduleSave(); live(); }
+  function updateSgSlot(i, field, val) { sgSlots[i][field] = val; scheduleSave(); live(); }
+  function renderSgSlots() {
+    var box = document.getElementById('sg_slots');
+    if (sgSlots.length === 0) { box.innerHTML = '<div class="slot-empty">등록된 해외 종목이 없습니다</div>'; return; }
+    box.innerHTML = sgSlots.map(function(s, i) {
+      return '<div class="slot-row">' +
+        '<input class="slot-name" type="text" placeholder="종목명 (예: QQQ)" value="' + esc(s.name) + '" ' +
+          'oninput="updateSgSlot(' + i + ',\'name\',this.value)">' +
+        '<input class="slot-amt" type="number" placeholder="0" value="' + (s.amt === '' ? '' : s.amt) + '" ' +
+          'oninput="updateSgSlot(' + i + ',\'amt\',this.value)">' +
+        '<button class="slot-del" onclick="removeSgSlot(' + i + ')" title="삭제">✕</button>' +
+      '</div>';
+    }).join('');
+  }
+
+  /* ── 국내주식 슬롯 ── */
+  function addSdSlot(name, amt) {
+    sdSlots.push({ name: name || '', amt: (amt === undefined ? '' : amt) });
+    renderSdSlots(); scheduleSave(); live();
+  }
+  function removeSdSlot(i) { sdSlots.splice(i, 1); renderSdSlots(); scheduleSave(); live(); }
+  function updateSdSlot(i, field, val) { sdSlots[i][field] = val; scheduleSave(); live(); }
+  function renderSdSlots() {
+    var box = document.getElementById('sd_slots');
+    if (sdSlots.length === 0) { box.innerHTML = '<div class="slot-empty">등록된 국내 종목이 없습니다</div>'; return; }
+    box.innerHTML = sdSlots.map(function(s, i) {
+      return '<div class="slot-row">' +
+        '<input class="slot-name" type="text" placeholder="종목명 (예: 삼성전자)" value="' + esc(s.name) + '" ' +
+          'oninput="updateSdSlot(' + i + ',\'name\',this.value)">' +
+        '<input class="slot-amt" type="number" placeholder="0" value="' + (s.amt === '' ? '' : s.amt) + '" ' +
+          'oninput="updateSdSlot(' + i + ',\'amt\',this.value)">' +
+        '<button class="slot-del" onclick="removeSdSlot(' + i + ')" title="삭제">✕</button>' +
+      '</div>';
+    }).join('');
+  }
+
+  /* ── 채권 슬롯 ── */
+  function addBondSlot(name, amt) {
+    bondSlots.push({ name: name || '', amt: (amt === undefined ? '' : amt) });
+    renderBondSlots();
+    scheduleSave(); live();
+  }
+  function removeBondSlot(i) { bondSlots.splice(i, 1); renderBondSlots(); scheduleSave(); live(); }
+  function updateBondSlot(i, field, val) { bondSlots[i][field] = val; scheduleSave(); live(); }
+  function renderBondSlots() {
+    var box = document.getElementById('bond_slots');
+    if (bondSlots.length === 0) { box.innerHTML = '<div class="slot-empty">등록된 채권 섹터가 없습니다</div>'; return; }
+    box.innerHTML = bondSlots.map(function(s, i) {
+      return '<div class="slot-row">' +
+        '<input class="slot-name" type="text" placeholder="섹터/종목명 (예: BBB급 회사채)" value="' + esc(s.name) + '" ' +
+          'oninput="updateBondSlot(' + i + ',\'name\',this.value)">' +
+        '<input class="slot-amt" type="number" placeholder="0" value="' + (s.amt === '' ? '' : s.amt) + '" ' +
+          'oninput="updateBondSlot(' + i + ',\'amt\',this.value)">' +
+        '<button class="slot-del" onclick="removeBondSlot(' + i + ')" title="삭제">✕</button>' +
+      '</div>';
+    }).join('');
+  }
+
+  /* ── 예적금(은행) 슬롯 ── */
+  function addSavingSlot(name, type, amt) {
+    savingSlots.push({ name: name || '', type: type || SAVING_TYPES[0], amt: (amt === undefined ? '' : amt) });
+    renderSavingSlots();
+    scheduleSave(); live();
+  }
+  function removeSavingSlot(i) { savingSlots.splice(i, 1); renderSavingSlots(); scheduleSave(); live(); }
+  function updateSavingSlot(i, field, val) { savingSlots[i][field] = val; scheduleSave(); live(); }
+  function renderSavingSlots() {
+    var box = document.getElementById('saving_slots');
+    if (savingSlots.length === 0) { box.innerHTML = '<div class="slot-empty">등록된 은행이 없습니다</div>'; return; }
+    box.innerHTML = savingSlots.map(function(s, i) {
+      var opts = SAVING_TYPES.map(function(t) {
+        return '<option value="' + t + '"' + (s.type === t ? ' selected' : '') + '>' + t + '</option>';
+      }).join('');
+      return '<div class="slot-row">' +
+        '<input class="slot-name" type="text" placeholder="은행명 (예: OO저축은행)" value="' + esc(s.name) + '" ' +
+          'oninput="updateSavingSlot(' + i + ',\'name\',this.value)">' +
+        '<select class="slot-sel" onchange="updateSavingSlot(' + i + ',\'type\',this.value)">' + opts + '</select>' +
+        '<input class="slot-amt" type="number" placeholder="0" value="' + (s.amt === '' ? '' : s.amt) + '" ' +
+          'oninput="updateSavingSlot(' + i + ',\'amt\',this.value)">' +
+        '<button class="slot-del" onclick="removeSavingSlot(' + i + ')" title="삭제">✕</button>' +
+      '</div>';
+    }).join('');
+  }
 
   /* ── 슬라이더 1 (위험:안전) ── */
   function onSlider1(val) {
@@ -316,11 +473,14 @@
 
   /* ── 실시간 소계 ── */
   function live() {
-    var sg = v('sg'), sd = v('sd');
+    var sg = sgTotal(), sd = sdTotal();
     var gold = v('gold'), dollar = v('dollar'), inverse = v('inverse');
-    var bond = v('bond'), saving = v('saving');
+    var bond = bondTotal(), saving = savingTotal();
+    document.getElementById('sg_sum').textContent    = fmt(sg);
+    document.getElementById('sd_sum').textContent    = fmt(sd);
     document.getElementById('stock_sum').textContent = fmt(sg + sd + (bondIsRisk ? bond : 0));
     document.getElementById('hedge_sum').textContent = fmt(gold + dollar + inverse);
+    document.getElementById('bond_sum').textContent  = fmt(bond);
     document.getElementById('safe_sum').textContent  = fmt(saving + (!bondIsRisk ? bond : 0));
     scheduleSave();
     calculate();
@@ -328,9 +488,9 @@
 
   /* ── 계산 ── */
   function calculate() {
-    var sg = v('sg'), sd = v('sd');
+    var sg = sgTotal(), sd = sdTotal();
     var gold = v('gold'), dollar = v('dollar'), inverse = v('inverse');
-    var bond = v('bond'), saving = v('saving');
+    var bond = bondTotal(), saving = savingTotal();
 
     var stockAmt = sg + sd + (bondIsRisk ? bond : 0);
     var hedgeAmt = gold + dollar + inverse;
@@ -372,6 +532,34 @@
       return '<div class="rebal-row"><span class="label">' + label + '</span><span class="' + cls + '">' + sign + fmt(Math.abs(diff)) + action + '</span></div>';
     }
 
+    // 해외주식 종목별 분해
+    var sgBreak = sgSlots.filter(function(s){ return (parseFloat(s.amt)||0) > 0; }).map(function(s) {
+      var a = parseFloat(s.amt) || 0;
+      var nm = (s.name && s.name.trim()) ? esc(s.name.trim()) : '(이름 없음)';
+      return '  <p style="font-size:13px;color:#888;padding-left:24px;">· ' + nm + ' ' + fmt(a) + ' (' + pct(a, total) + '%)</p>';
+    }).join('');
+
+    // 국내주식 종목별 분해
+    var sdBreak = sdSlots.filter(function(s){ return (parseFloat(s.amt)||0) > 0; }).map(function(s) {
+      var a = parseFloat(s.amt) || 0;
+      var nm = (s.name && s.name.trim()) ? esc(s.name.trim()) : '(이름 없음)';
+      return '  <p style="font-size:13px;color:#888;padding-left:24px;">· ' + nm + ' ' + fmt(a) + ' (' + pct(a, total) + '%)</p>';
+    }).join('');
+
+    // 채권 섹터별 분해
+    var bondBreak = bondSlots.filter(function(s){ return (parseFloat(s.amt)||0) > 0; }).map(function(s) {
+      var a = parseFloat(s.amt) || 0;
+      var nm = (s.name && s.name.trim()) ? esc(s.name.trim()) : '(이름 없음)';
+      return '  <p style="font-size:13px;color:#888;padding-left:24px;">· ' + nm + ' ' + fmt(a) + ' (' + pct(a, total) + '%)</p>';
+    }).join('');
+
+    // 예적금 은행별 분해
+    var savingBreak = savingSlots.filter(function(s){ return (parseFloat(s.amt)||0) > 0; }).map(function(s) {
+      var a = parseFloat(s.amt) || 0;
+      var nm = (s.name && s.name.trim()) ? esc(s.name.trim()) : '(은행명 없음)';
+      return '  <p style="font-size:13px;color:#888;padding-left:24px;">· ' + nm + ' <span style="color:#aaa;">[' + esc(s.type) + ']</span> ' + fmt(a) + ' (' + pct(a, total) + '%)</p>';
+    }).join('');
+
     document.getElementById('output').innerHTML =
       '<h3>📈 현재 포트폴리오</h3>' +
       '<div class="legend">' +
@@ -389,15 +577,16 @@
       '</div>' +
       '<p>총 자산: <strong>' + fmt(total) + '</strong></p>' +
       '<p>📈 순수주식: ' + fmt(stockAmt) + ' <span style="color:#1a73e8">(' + curStock + '%)</span></p>' +
-      '  <p style="font-size:13px;color:#888;padding-left:12px;">ㄴ 🌎 해외 ' + fmt(sg) + ' (' + sgP + '%) &nbsp; 🇰🇷 국내 ' + fmt(sd) + ' (' + sdP + '%)</p>' +
-      (bondIsRisk ? '  <p style="font-size:13px;color:#888;padding-left:12px;">ㄴ 채권(위험분류) ' + fmt(bond) + ' (' + bondP + '%)</p>' : '') +
+      (sg > 0 ? '  <p style="font-size:13px;color:#888;padding-left:12px;">ㄴ 🌎 해외 ' + fmt(sg) + ' (' + sgP + '%)</p>' + sgBreak : '') +
+      (sd > 0 ? '  <p style="font-size:13px;color:#888;padding-left:12px;">ㄴ 🇰🇷 국내 ' + fmt(sd) + ' (' + sdP + '%)</p>' + sdBreak : '') +
+      (bondIsRisk ? '  <p style="font-size:13px;color:#888;padding-left:12px;">ㄴ 채권(위험분류) ' + fmt(bond) + ' (' + bondP + '%)</p>' + bondBreak : '') +
       '<p>🏅 헷지자산: ' + fmt(hedgeAmt) + ' <span style="color:#e8a100">(' + curHedge + '%)</span></p>' +
       (gold > 0    ? '  <p style="font-size:13px;color:#888;padding-left:12px;">ㄴ 금 ' + fmt(gold) + ' (' + goldP + '%)</p>' : '') +
       (dollar > 0  ? '  <p style="font-size:13px;color:#888;padding-left:12px;">ㄴ 달러 ' + fmt(dollar) + ' (' + dolP + '%)</p>' : '') +
       (inverse > 0 ? '  <p style="font-size:13px;color:#888;padding-left:12px;">ㄴ 인버스 ' + fmt(inverse) + ' (' + invP + '%)</p>' : '') +
       '<p>🛡️ 안전자산: ' + fmt(safeAmt) + ' <span style="color:#7c5cbf">(' + curSafe + '%)</span></p>' +
-      (!bondIsRisk && bond > 0 ? '  <p style="font-size:13px;color:#888;padding-left:12px;">ㄴ 채권(안전분류) ' + fmt(bond) + ' (' + bondP + '%)</p>' : '') +
-      (saving > 0 ? '  <p style="font-size:13px;color:#888;padding-left:12px;">ㄴ 적금 ' + fmt(saving) + ' (' + savP + '%)</p>' : '') +
+      (!bondIsRisk && bond > 0 ? '  <p style="font-size:13px;color:#888;padding-left:12px;">ㄴ 채권(안전분류) ' + fmt(bond) + ' (' + bondP + '%)</p>' + bondBreak : '') +
+      (saving > 0 ? '  <p style="font-size:13px;color:#888;padding-left:12px;">ㄴ 예적금 ' + fmt(saving) + ' (' + savP + '%)</p>' + savingBreak : '') +
       '<hr class="divider">' +
       '<h3>🎯 목표 비중</h3>' +
       '<div class="bar-wrap">' +
@@ -427,13 +616,13 @@
   }
   function saveData() {
     var data = {
-      sg: document.getElementById('sg').value,
-      sd: document.getElementById('sd').value,
+      sgSlots: sgSlots,
+      sdSlots: sdSlots,
       gold: document.getElementById('gold').value,
       dollar: document.getElementById('dollar').value,
       inverse: document.getElementById('inverse').value,
-      bond: document.getElementById('bond').value,
-      saving: document.getElementById('saving').value,
+      bondSlots: bondSlots,
+      savingSlots: savingSlots,
       tRisk: tRisk, tHedgeInRisk: tHedgeInRisk, bondIsRisk: bondIsRisk,
       savedAt: new Date().toLocaleString('ko-KR')
     };
@@ -446,10 +635,41 @@
   function loadData() {
     try {
       var raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) { setSaveDot('', '저장된 데이터 없음'); return; }
+      if (!raw) { setSaveDot('', '저장된 데이터 없음'); renderSgSlots(); renderSdSlots(); renderBondSlots(); renderSavingSlots(); return; }
       var d = JSON.parse(raw);
-      var ids = ['sg','sd','gold','dollar','inverse','bond','saving'];
+      var ids = ['gold','dollar','inverse'];
       ids.forEach(function(id){ if (d[id] !== undefined) document.getElementById(id).value = d[id]; });
+
+      // 주식 슬롯 복원 (신규 포맷) / 구버전 단일 입력 마이그레이션
+      if (Array.isArray(d.sgSlots)) {
+        sgSlots = d.sgSlots.map(function(s){ return { name: s.name || '', amt: (s.amt === undefined ? '' : s.amt) }; });
+      } else if (d.sg !== undefined && d.sg !== '' && parseFloat(d.sg) > 0) {
+        sgSlots = [{ name: '해외주식', amt: d.sg }];
+      }
+      if (Array.isArray(d.sdSlots)) {
+        sdSlots = d.sdSlots.map(function(s){ return { name: s.name || '', amt: (s.amt === undefined ? '' : s.amt) }; });
+      } else if (d.sd !== undefined && d.sd !== '' && parseFloat(d.sd) > 0) {
+        sdSlots = [{ name: '국내주식', amt: d.sd }];
+      }
+
+      // 슬롯 복원 (신규 포맷)
+      if (Array.isArray(d.bondSlots)) {
+        bondSlots = d.bondSlots.map(function(s){ return { name: s.name || '', amt: (s.amt === undefined ? '' : s.amt) }; });
+      } else if (d.bond !== undefined && d.bond !== '' && parseFloat(d.bond) > 0) {
+        // 구버전 단일 채권 → 섹터 슬롯 1개로 이전
+        bondSlots = [{ name: '채권', amt: d.bond }];
+      }
+      if (Array.isArray(d.savingSlots)) {
+        savingSlots = d.savingSlots.map(function(s){ return { name: s.name || '', type: s.type || SAVING_TYPES[0], amt: (s.amt === undefined ? '' : s.amt) }; });
+      } else if (d.saving !== undefined && d.saving !== '' && parseFloat(d.saving) > 0) {
+        // 구버전 청년미래적금 → 은행 슬롯 1개로 이전
+        savingSlots = [{ name: '청년미래적금', type: SAVING_TYPES[0], amt: d.saving }];
+      }
+      renderSgSlots();
+      renderSdSlots();
+      renderBondSlots();
+      renderSavingSlots();
+
       if (d.tRisk !== undefined)       { tRisk = d.tRisk; updateSlider1UI(); syncPreset1(); }
       if (d.tHedgeInRisk !== undefined){ tHedgeInRisk = d.tHedgeInRisk; updateSlider2UI(); }
       if (d.bondIsRisk !== undefined && d.bondIsRisk !== bondIsRisk) toggleBond();
@@ -457,11 +677,19 @@
       setSaveDot('saved', '저장된 데이터 불러옴');
       updateFinalSplit();
       live();
-    } catch(e) { setSaveDot('', '불러오기 실패'); }
+    } catch(e) { setSaveDot('', '불러오기 실패'); renderSgSlots(); renderSdSlots(); renderBondSlots(); renderSavingSlots(); }
   }
   function resetAll() {
     if (!confirm('모든 데이터를 초기화할까요?')) return;
-    ['sg','sd','gold','dollar','inverse','bond','saving'].forEach(function(id){ document.getElementById(id).value = ''; });
+    ['gold','dollar','inverse'].forEach(function(id){ document.getElementById(id).value = ''; });
+    sgSlots = [];
+    sdSlots = [];
+    bondSlots = [];
+    savingSlots = [];
+    renderSgSlots();
+    renderSdSlots();
+    renderBondSlots();
+    renderSavingSlots();
     if (bondIsRisk) toggleBond();
     localStorage.removeItem(STORAGE_KEY);
     document.getElementById('output').style.display = 'none';
