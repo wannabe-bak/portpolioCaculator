@@ -35,6 +35,12 @@
     .track-risk  { background: #1a73e8; height: 100%; }
     .track-hedge { background: #e8a100; height: 100%; }
     .track-safe  { background: #7c5cbf; height: 100%; }
+    .track-ovs   { background: #1a73e8; height: 100%; }
+    .track-dom   { background: #0d8f6c; height: 100%; }
+    .val-ovs { font-size: 22px; font-weight: 800; color: #1a73e8; }
+    .val-dom { font-size: 22px; font-weight: 800; color: #0d8f6c; }
+    .lbl-ovs { font-size: 13px; font-weight: 700; color: #1a73e8; }
+    .lbl-dom { font-size: 13px; font-weight: 700; color: #0d8f6c; }
 
     input[type=range] {
       -webkit-appearance: none; appearance: none;
@@ -96,6 +102,18 @@
     .stock-total-row span { font-weight: 700; color: #1a73e8; }
 
     .btn-row { display: flex; gap: 8px; margin-top: 20px; }
+    .mode-row { margin-top: 20px; }
+    .mode-select {
+      width: 100%; padding: 12px 14px; border: 2px solid #1a73e8; border-radius: 10px;
+      font-size: 15px; font-weight: 700; color: #1a73e8; background: #f0f6ff;
+      cursor: pointer; -webkit-appearance: none; appearance: none;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%231a73e8' stroke-width='3'><path d='M6 9l6 6 6-6'/></svg>");
+      background-repeat: no-repeat; background-position: right 14px center;
+    }
+    .mode-select:focus { outline: none; }
+    .mode-row.networth .mode-select { border-color: #a07d3c; color: #9a7430; background-color: #fbf6ec;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23a07d3c' stroke-width='3'><path d='M6 9l6 6 6-6'/></svg>"); }
+    .mode-row + .btn-row { margin-top: 8px; }
     button.calc-btn { flex: 1; padding: 14px; background: #1a73e8; color: white; border: none; border-radius: 10px; font-size: 17px; font-weight: 700; cursor: pointer; }
     button.calc-btn:active { background: #1558b0; }
     button.reset-btn { padding: 14px 16px; background: #f1f3f4; color: #555; border: none; border-radius: 10px; font-size: 15px; font-weight: 700; cursor: pointer; }
@@ -180,12 +198,16 @@
     }
     .cat-chip.safe  { border-color: #b9a6e0; background: #f8f4ff; }
     .cat-chip.other { border-color: #c9b08a; background: #fbf6ec; }
+    .cat-chip.sg    { border-color: #9cc0f5; background: #f0f6ff; }
+    .cat-chip.sd    { border-color: #84c5b2; background: #f0fbf6; }
     .cat-chip-input {
       border: none; outline: none; background: transparent; font-size: 12.5px;
       width: 90px; color: #444; padding: 2px 0;
     }
     .cat-chip.safe  .cat-chip-input { color: #6a4fb0; }
     .cat-chip.other .cat-chip-input { color: #9a7430; }
+    .cat-chip.sg    .cat-chip-input { color: #1a73e8; }
+    .cat-chip.sd    .cat-chip-input { color: #0d8f6c; }
     .cat-chip-del {
       border: none; background: transparent; color: #bbb; cursor: pointer;
       font-size: 12px; line-height: 1; padding: 2px 4px;
@@ -262,10 +284,41 @@
     <div class="sub-note" id="final_split">→ 전체 기준: 순수주식 <b id="fs_stock">64%</b> / 헷지 <b id="fs_hedge">16%</b> / 안전 <b id="fs_safe">20%</b></div>
   </div>
 
+  <!-- 슬라이더 3: 순수주식 내 해외 vs 국내 -->
+  <div class="slider-section">
+    <div class="slider-title">🎚️ 3단계 — 순수주식 내 해외 : 국내 비중</div>
+    <div class="slider-labels">
+      <span class="lbl-ovs">🌎 해외주식</span>
+      <span class="lbl-dom">🇰🇷 국내주식</span>
+    </div>
+    <div class="slider-value-row">
+      <span class="val-ovs" id="ovs_pct">65%</span>
+      <span class="val-dom" id="dom_pct">35%</span>
+    </div>
+    <div class="slider-wrap">
+      <div class="slider-track-bg">
+        <div class="track-ovs" id="tr_ovs" style="width:65%"></div>
+        <div class="track-dom" id="tr_dom" style="width:35%"></div>
+      </div>
+      <input type="range" id="slider_geo" min="0" max="100" step="5" value="65" oninput="onSlider3(this.value)">
+    </div>
+    <div class="preset-row">
+      <button class="preset-btn" data-g="50" onclick="setPreset3(50)">50:50<br><small>균형</small></button>
+      <button class="preset-btn active" data-g="65" onclick="setPreset3(65)">65:35<br><small>구조팩터</small></button>
+      <button class="preset-btn" data-g="70" onclick="setPreset3(70)">70:30<br><small>미국강화</small></button>
+      <button class="preset-btn" data-g="80" onclick="setPreset3(80)">80:20<br><small>시총근접</small></button>
+    </div>
+    <div class="sub-note">해외 비중 기준 (왼쪽 = 해외 %)</div>
+  </div>
+
   <!-- 해외주식 -->
   <span class="section-label sg">🌎 해외주식</span>
   <div class="section-box sg">
     <label>해외주식 — 종목별 등록</label>
+    <div class="cat-manage">
+      <div class="cat-manage-title">드롭다운 카테고리 (이름 편집 / 추가)</div>
+      <div class="cat-chip-list" id="sg_cats"></div>
+    </div>
     <div class="slot-list" id="sg_slots"></div>
     <button class="slot-add sg-add" onclick="addSgSlot()">➕ 해외 종목 추가</button>
     <div class="subtotal">해외주식 합계: <span id="sg_sum">0원</span></div>
@@ -275,6 +328,10 @@
   <span class="section-label sd">🇰🇷 국내주식</span>
   <div class="section-box sd">
     <label>국내주식 — 종목별 등록</label>
+    <div class="cat-manage">
+      <div class="cat-manage-title">드롭다운 카테고리 (이름 편집 / 추가)</div>
+      <div class="cat-chip-list" id="sd_cats"></div>
+    </div>
     <div class="slot-list" id="sd_slots"></div>
     <button class="slot-add sd-add" onclick="addSdSlot()">➕ 국내 종목 추가</button>
     <div class="subtotal">국내주식 합계: <span id="sd_sum">0원</span></div>
@@ -303,6 +360,10 @@
     <div class="input-row" style="margin-bottom:8px;">
       <span style="flex:1; font-size:12px; color:#888;">채권 전체를 위험/안전 중 어디로 볼지 선택</span>
       <button class="bond-toggle safe" id="bond_toggle" onclick="toggleBond()">🛡️ 안전</button>
+    </div>
+    <div class="cat-manage">
+      <div class="cat-manage-title">드롭다운 카테고리 (이름 편집 / 추가)</div>
+      <div class="cat-chip-list" id="bond_cats"></div>
     </div>
     <div class="slot-list" id="bond_slots"></div>
     <button class="slot-add safe-add" onclick="addBondSlot()">➕ 채권 섹터 추가</button>
@@ -335,8 +396,14 @@
     <div id="other_breakdown" style="margin-top:10px;"></div>
   </div>
 
+  <div class="mode-row">
+    <select id="view_mode" class="mode-select" onchange="onModeChange(this.value)">
+      <option value="rebal">⚖️ 리밸런싱 비중계산</option>
+      <option value="networth">💰 전체 재산 열람</option>
+    </select>
+  </div>
   <div class="btn-row">
-    <button class="calc-btn" onclick="calculate()">비중 계산하기</button>
+    <button class="calc-btn" id="calc_btn" onclick="calculate()">비중 계산하기</button>
     <button class="reset-btn" onclick="resetAll()">🗑️</button>
   </div>
   <div class="last-saved" id="last_saved"></div>
@@ -347,17 +414,22 @@
 <script>
   var tRisk = 80;       // 위험 목표 %
   var tHedgeInRisk = 20; // 위험 내 헷지 %
+  var tOvsInStock = 65;  // 순수주식 내 해외 목표 % (국내 = 100 - 이값)
   var bondIsRisk = false; // 채권 분류 (false=안전, true=위험)
+  var viewMode = 'rebal'; // 'rebal' = 리밸런싱 비중계산, 'networth' = 전체 재산 열람
   var saveTimer = null;
   var STORAGE_KEY = 'portfolio_calc_v2';
 
   /* ── 동적 슬롯 데이터 ── */
-  // 해외주식: 종목별 슬롯 { name, amt }
+  // 해외주식: 종목별 슬롯 { name, type, amt }
   var sgSlots = [];
-  // 국내주식: 종목별 슬롯 { name, amt }
+  var SG_TYPES = ['지수ETF', '개별주', '테마ETF'];
+  // 국내주식: 종목별 슬롯 { name, type, amt }
   var sdSlots = [];
-  // 채권: 섹터별 슬롯 { name, amt }
+  var SD_TYPES = ['지수ETF', '개별주', '배당주'];
+  // 채권: 섹터별 슬롯 { name, type, amt }
   var bondSlots = [];
+  var BOND_TYPES = ['국채', '회사채', '단기채'];
   // 예적금: 은행별 슬롯 { name, type, amt }  type: 카테고리(편집/추가 가능)
   var savingSlots = [];
   var SAVING_TYPES = ['청년미래적금', '2금융권 정기예금'];
@@ -380,7 +452,7 @@
 
   /* ── 해외주식 슬롯 ── */
   function addSgSlot(name, amt) {
-    sgSlots.push({ name: name || '', amt: (amt === undefined ? '' : amt) });
+    sgSlots.push({ name: name || '', type: SG_TYPES[0], amt: (amt === undefined ? '' : amt) });
     renderSgSlots(); scheduleSave(); live();
   }
   function removeSgSlot(i) { sgSlots.splice(i, 1); renderSgSlots(); scheduleSave(); live(); }
@@ -389,9 +461,13 @@
     var box = document.getElementById('sg_slots');
     if (sgSlots.length === 0) { box.innerHTML = '<div class="slot-empty">등록된 해외 종목이 없습니다</div>'; return; }
     box.innerHTML = sgSlots.map(function(s, i) {
+      var opts = SG_TYPES.map(function(t) {
+        return '<option value="' + esc(t) + '"' + (s.type === t ? ' selected' : '') + '>' + esc(t) + '</option>';
+      }).join('');
       return '<div class="slot-row">' +
         '<input class="slot-name" type="text" placeholder="종목명 (예: QQQ)" value="' + esc(s.name) + '" ' +
           'oninput="updateSgSlot(' + i + ',\'name\',this.value)">' +
+        '<select class="slot-sel" onchange="updateSgSlot(' + i + ',\'type\',this.value)">' + opts + '</select>' +
         '<input class="slot-amt" type="number" placeholder="0" value="' + (s.amt === '' ? '' : s.amt) + '" ' +
           'oninput="updateSgSlot(' + i + ',\'amt\',this.value)">' +
         '<button class="slot-del" onclick="removeSgSlot(' + i + ')" title="삭제">✕</button>' +
@@ -401,7 +477,7 @@
 
   /* ── 국내주식 슬롯 ── */
   function addSdSlot(name, amt) {
-    sdSlots.push({ name: name || '', amt: (amt === undefined ? '' : amt) });
+    sdSlots.push({ name: name || '', type: SD_TYPES[0], amt: (amt === undefined ? '' : amt) });
     renderSdSlots(); scheduleSave(); live();
   }
   function removeSdSlot(i) { sdSlots.splice(i, 1); renderSdSlots(); scheduleSave(); live(); }
@@ -410,9 +486,13 @@
     var box = document.getElementById('sd_slots');
     if (sdSlots.length === 0) { box.innerHTML = '<div class="slot-empty">등록된 국내 종목이 없습니다</div>'; return; }
     box.innerHTML = sdSlots.map(function(s, i) {
+      var opts = SD_TYPES.map(function(t) {
+        return '<option value="' + esc(t) + '"' + (s.type === t ? ' selected' : '') + '>' + esc(t) + '</option>';
+      }).join('');
       return '<div class="slot-row">' +
         '<input class="slot-name" type="text" placeholder="종목명 (예: 삼성전자)" value="' + esc(s.name) + '" ' +
           'oninput="updateSdSlot(' + i + ',\'name\',this.value)">' +
+        '<select class="slot-sel" onchange="updateSdSlot(' + i + ',\'type\',this.value)">' + opts + '</select>' +
         '<input class="slot-amt" type="number" placeholder="0" value="' + (s.amt === '' ? '' : s.amt) + '" ' +
           'oninput="updateSdSlot(' + i + ',\'amt\',this.value)">' +
         '<button class="slot-del" onclick="removeSdSlot(' + i + ')" title="삭제">✕</button>' +
@@ -422,7 +502,7 @@
 
   /* ── 채권 슬롯 ── */
   function addBondSlot(name, amt) {
-    bondSlots.push({ name: name || '', amt: (amt === undefined ? '' : amt) });
+    bondSlots.push({ name: name || '', type: BOND_TYPES[0], amt: (amt === undefined ? '' : amt) });
     renderBondSlots();
     scheduleSave(); live();
   }
@@ -432,9 +512,13 @@
     var box = document.getElementById('bond_slots');
     if (bondSlots.length === 0) { box.innerHTML = '<div class="slot-empty">등록된 채권 섹터가 없습니다</div>'; return; }
     box.innerHTML = bondSlots.map(function(s, i) {
+      var opts = BOND_TYPES.map(function(t) {
+        return '<option value="' + esc(t) + '"' + (s.type === t ? ' selected' : '') + '>' + esc(t) + '</option>';
+      }).join('');
       return '<div class="slot-row">' +
-        '<input class="slot-name" type="text" placeholder="섹터/종목명 (예: BBB급 회사채)" value="' + esc(s.name) + '" ' +
+        '<input class="slot-name" type="text" placeholder="종목명 (예: BBB급 회사채)" value="' + esc(s.name) + '" ' +
           'oninput="updateBondSlot(' + i + ',\'name\',this.value)">' +
+        '<select class="slot-sel" onchange="updateBondSlot(' + i + ',\'type\',this.value)">' + opts + '</select>' +
         '<input class="slot-amt" type="number" placeholder="0" value="' + (s.amt === '' ? '' : s.amt) + '" ' +
           'oninput="updateBondSlot(' + i + ',\'amt\',this.value)">' +
         '<button class="slot-del" onclick="removeBondSlot(' + i + ')" title="삭제">✕</button>' +
@@ -482,6 +566,30 @@
     }).join('') +
     '<button class="cat-chip-add" onclick="' + addFn + '()">＋ 카테고리</button>';
   }
+
+  /* 해외주식 카테고리 관리 */
+  function renderSgCats() {
+    renderCatChips('sg_cats', SG_TYPES, sgSlots, 'addSgCat', 'renameSgCat', 'removeSgCat', 'sg');
+  }
+  function addSgCat() { SG_TYPES.push('카테고리 ' + (SG_TYPES.length + 1)); renderSgCats(); renderSgSlots(); scheduleSave(); }
+  function renameSgCat(i, val) { var o = SG_TYPES[i]; SG_TYPES[i] = val; sgSlots.forEach(function(s){ if (s.type === o) s.type = val; }); renderSgSlots(); scheduleSave(); live(); }
+  function removeSgCat(i) { if (SG_TYPES.length <= 1) return; var r = SG_TYPES.splice(i,1)[0], f = SG_TYPES[0]; sgSlots.forEach(function(s){ if (s.type === r) s.type = f; }); renderSgCats(); renderSgSlots(); scheduleSave(); live(); }
+
+  /* 국내주식 카테고리 관리 */
+  function renderSdCats() {
+    renderCatChips('sd_cats', SD_TYPES, sdSlots, 'addSdCat', 'renameSdCat', 'removeSdCat', 'sd');
+  }
+  function addSdCat() { SD_TYPES.push('카테고리 ' + (SD_TYPES.length + 1)); renderSdCats(); renderSdSlots(); scheduleSave(); }
+  function renameSdCat(i, val) { var o = SD_TYPES[i]; SD_TYPES[i] = val; sdSlots.forEach(function(s){ if (s.type === o) s.type = val; }); renderSdSlots(); scheduleSave(); live(); }
+  function removeSdCat(i) { if (SD_TYPES.length <= 1) return; var r = SD_TYPES.splice(i,1)[0], f = SD_TYPES[0]; sdSlots.forEach(function(s){ if (s.type === r) s.type = f; }); renderSdCats(); renderSdSlots(); scheduleSave(); live(); }
+
+  /* 채권 카테고리 관리 */
+  function renderBondCats() {
+    renderCatChips('bond_cats', BOND_TYPES, bondSlots, 'addBondCat', 'renameBondCat', 'removeBondCat', 'safe');
+  }
+  function addBondCat() { BOND_TYPES.push('카테고리 ' + (BOND_TYPES.length + 1)); renderBondCats(); renderBondSlots(); scheduleSave(); }
+  function renameBondCat(i, val) { var o = BOND_TYPES[i]; BOND_TYPES[i] = val; bondSlots.forEach(function(s){ if (s.type === o) s.type = val; }); renderBondSlots(); scheduleSave(); live(); }
+  function removeBondCat(i) { if (BOND_TYPES.length <= 1) return; var r = BOND_TYPES.splice(i,1)[0], f = BOND_TYPES[0]; bondSlots.forEach(function(s){ if (s.type === r) s.type = f; }); renderBondCats(); renderBondSlots(); scheduleSave(); live(); }
 
   /* 예적금 카테고리 관리 */
   function renderSavingCats() {
@@ -636,6 +744,29 @@
     document.getElementById('tr_hedge').style.width  = tHedgeInRisk + '%';
     document.getElementById('slider_hedge').value    = tHedgeInRisk;
   }
+
+  /* ── 슬라이더 3 (순수주식 내 해외:국내) ── */
+  function onSlider3(val) {
+    tOvsInStock = parseInt(val);
+    updateSlider3UI();
+    syncPreset3();
+    scheduleSave();
+    calculate();
+  }
+  function setPreset3(g) { tOvsInStock = g; updateSlider3UI(); syncPreset3(); scheduleSave(); calculate(); }
+  function updateSlider3UI() {
+    var dom = 100 - tOvsInStock;
+    document.getElementById('ovs_pct').textContent = tOvsInStock + '%';
+    document.getElementById('dom_pct').textContent = dom + '%';
+    document.getElementById('tr_ovs').style.width  = tOvsInStock + '%';
+    document.getElementById('tr_dom').style.width  = dom + '%';
+    document.getElementById('slider_geo').value    = tOvsInStock;
+  }
+  function syncPreset3() {
+    document.querySelectorAll('.preset-row .preset-btn[data-g]').forEach(function(b) {
+      b.classList.toggle('active', parseInt(b.getAttribute('data-g')) === tOvsInStock);
+    });
+  }
   function updateFinalSplit() {
     var stockFinal  = (tRisk * (100 - tHedgeInRisk) / 100).toFixed(1);
     var hedgeFinal  = (tRisk * tHedgeInRisk / 100).toFixed(1);
@@ -672,8 +803,151 @@
     calculate();
   }
 
+  /* ── 보기 모드 (리밸런싱 / 전체 재산) ── */
+  function onModeChange(mode) {
+    viewMode = mode;
+    document.querySelector('.mode-row').className = 'mode-row' + (mode === 'networth' ? ' networth' : '');
+    var btn = document.getElementById('calc_btn');
+    if (mode === 'networth') {
+      btn.textContent = '전체 재산 보기';
+      btn.style.background = '#a07d3c';
+    } else {
+      btn.textContent = '비중 계산하기';
+      btn.style.background = '';
+    }
+    scheduleSave();
+    calculate();
+  }
+
+  /* 전체 재산 열람 (부동산/기타 포함) */
+  function renderNetWorth() {
+    var sg = sgTotal(), sd = sdTotal();
+    var gold = v('gold'), dollar = v('dollar'), inverse = v('inverse');
+    var bond = bondTotal(), saving = savingTotal();
+    var other = otherTotal();
+
+    var stockAmt = sg + sd + (bondIsRisk ? bond : 0);
+    var hedgeAmt = gold + dollar + inverse;
+    var safeAmt  = saving + (!bondIsRisk ? bond : 0);
+    var invest   = stockAmt + hedgeAmt + safeAmt; // 포트폴리오(투자) 자산
+    var grand    = invest + other;                // 전체 순자산
+
+    if (grand === 0) { document.getElementById('output').style.display = 'none'; return; }
+
+    function row(label, amt, color) {
+      var p = grand === 0 ? '0.0' : (amt / grand * 100).toFixed(1);
+      return '<div class="rebal-row"><span class="label">' + label + '</span>' +
+             '<span style="color:' + color + ';font-weight:700;">' + fmt(amt) + ' (' + p + '%)</span></div>';
+    }
+
+    var investP = (invest / grand * 100).toFixed(1);
+    var otherP  = (other  / grand * 100).toFixed(1);
+
+    document.getElementById('output').innerHTML =
+      '<h3>💰 전체 재산 (부동산/기타 포함)</h3>' +
+      '<div class="bar-wrap">' +
+        '<div style="background:#1a73e8;height:100%;width:' + investP + '%"></div>' +
+        '<div style="background:#a07d3c;height:100%;width:' + otherP + '%"></div>' +
+      '</div>' +
+      '<div class="legend">' +
+        '<div class="legend-item"><div class="legend-dot" style="background:#1a73e8"></div>투자자산</div>' +
+        '<div class="legend-item"><div class="legend-dot" style="background:#a07d3c"></div>부동산/기타</div>' +
+      '</div>' +
+      '<p>🏦 전체 순자산: <strong>' + fmt(grand) + '</strong></p>' +
+      '<div class="rebal-box">' +
+        row('📊 투자자산 (포트폴리오)', invest, '#1a73e8') +
+        row('🏠 부동산/기타', other, '#a07d3c') +
+      '</div>' +
+      '<hr class="divider">' +
+      '<h3>📊 투자자산 내역</h3>' +
+      '<div class="rebal-box">' +
+        row('📈 순수주식', stockAmt, '#1a73e8') +
+        row('🏅 헷지자산', hedgeAmt, '#e8a100') +
+        row('🛡️ 안전자산', safeAmt, '#7c5cbf') +
+      '</div>' +
+      (other > 0 ? buildOtherNetworthBlock(other, grand) : '');
+
+    document.getElementById('output').style.display = 'block';
+  }
+
+  function buildOtherNetworthBlock(other, grand) {
+    var byType = {};
+    OTHER_TYPES.forEach(function(t){ byType[t] = 0; });
+    otherSlots.forEach(function(s){
+      var a = parseFloat(s.amt) || 0; if (a <= 0) return;
+      if (byType[s.type] === undefined) byType[s.type] = 0;
+      byType[s.type] += a;
+    });
+    var rows = Object.keys(byType).filter(function(t){ return byType[t] > 0; }).map(function(t){
+      var pAll = (byType[t] / grand * 100).toFixed(1);
+      var pSec = (byType[t] / other * 100).toFixed(1);
+      return '<div class="rebal-row"><span class="label">' + esc(t) + '</span>' +
+             '<span style="color:#9a7430;font-weight:700;">' + fmt(byType[t]) +
+             ' <span style="color:#aaa;font-weight:400;">(전체 ' + pAll + '% / 섹션 ' + pSec + '%)</span></span></div>';
+    }).join('');
+    return '<hr class="divider"><h3>🏠 부동산/기타 내역</h3><div class="rebal-box">' + rows + '</div>';
+  }
+
+  /* ── 순수주식 내 해외:국내 리밸런싱 블록 ── */
+  function geoRebalBlock(sg, sd, tStockAmt) {
+    var stock = sg + sd;
+    if (stock <= 0) return '';
+    var curOvsP = +(sg / stock * 100).toFixed(1);
+    var curDomP = +(sd / stock * 100).toFixed(1);
+    // 목표 금액: 목표 순수주식 금액(tStockAmt) 기준으로 해외/국내 배분
+    var tOvsAmt = tStockAmt * tOvsInStock / 100;
+    var tDomAmt = tStockAmt * (100 - tOvsInStock) / 100;
+    // 현재 금액 기준 차이 (당장 옮길 양은 현재 주식총액 기준이 직관적)
+    var tOvsNow = stock * tOvsInStock / 100;
+    var tDomNow = stock * (100 - tOvsInStock) / 100;
+    var dOvs = sg - tOvsNow;   // +면 해외 과다 → 줄임 / -면 부족 → 늘림
+    var dDom = sd - tDomNow;
+
+    function geoRow(label, cur, curP, tgtP, diff) {
+      var line = '<div class="rebal-row"><span class="label">' + label +
+                 ' <span style="color:#aaa;font-weight:400;">현 ' + curP + '% → 목표 ' + tgtP + '%</span></span>';
+      if (Math.abs(diff) < 1000) {
+        line += '<span style="color:#34a853">✅ 적정</span>';
+      } else {
+        var sign = diff > 0 ? '▼ ' : '▲ ';
+        var action = diff > 0 ? ' 매도' : ' 매수';
+        var cls = diff > 0 ? 'red' : 'green';
+        line += '<span class="' + cls + '">' + sign + fmt(Math.abs(diff)) + action + '</span>';
+      }
+      return line + '</div>';
+    }
+
+    var note = '';
+    if (Math.abs(dOvs) >= 1000) {
+      var move = Math.abs(dOvs);
+      if (dDom > 0) {
+        note = '<div class="sub-note" style="text-align:left;margin-top:8px;color:#555;">💡 국내주식 ' +
+               fmt(move) + '어치를 줄여 해외주식으로 옮기면 목표(해외 ' + tOvsInStock + ' : 국내 ' + (100 - tOvsInStock) + ')에 도달합니다.</div>';
+      } else {
+        note = '<div class="sub-note" style="text-align:left;margin-top:8px;color:#555;">💡 해외주식 ' +
+               fmt(move) + '어치를 줄여 국내주식으로 옮기면 목표(해외 ' + tOvsInStock + ' : 국내 ' + (100 - tOvsInStock) + ')에 도달합니다.</div>';
+      }
+    }
+
+    return '<hr class="divider">' +
+      '<h3>🌐 순수주식 내 해외 : 국내 (목표 ' + tOvsInStock + ':' + (100 - tOvsInStock) + ')</h3>' +
+      '<div class="bar-wrap">' +
+        '<div style="background:#1a73e8;height:100%;width:' + curOvsP + '%"></div>' +
+        '<div style="background:#0d8f6c;height:100%;width:' + curDomP + '%"></div>' +
+      '</div>' +
+      '<div class="legend">' +
+        '<div class="legend-item"><div class="legend-dot" style="background:#1a73e8"></div>해외 ' + curOvsP + '%</div>' +
+        '<div class="legend-item"><div class="legend-dot" style="background:#0d8f6c"></div>국내 ' + curDomP + '%</div>' +
+      '</div>' +
+      '<div class="rebal-box">' +
+        geoRow('🌎 해외주식', sg, curOvsP, tOvsInStock, dOvs) +
+        geoRow('🇰🇷 국내주식', sd, curDomP, (100 - tOvsInStock), dDom) +
+      '</div>' + note;
+  }
+
   /* ── 계산 ── */
   function calculate() {
+    if (viewMode === 'networth') { renderNetWorth(); return; }
     var sg = sgTotal(), sd = sdTotal();
     var gold = v('gold'), dollar = v('dollar'), inverse = v('inverse');
     var bond = bondTotal(), saving = savingTotal();
@@ -789,7 +1063,8 @@
         rebalRow('📈 순수주식', dStock) +
         rebalRow('🏅 헷지자산', dHedge) +
         rebalRow('🛡️ 안전자산', dSafe) +
-      '</div>';
+      '</div>' +
+      geoRebalBlock(sg, sd, tStockAmt);
 
     document.getElementById('output').style.display = 'block';
   }
@@ -803,16 +1078,20 @@
   function saveData() {
     var data = {
       sgSlots: sgSlots,
+      sgTypes: SG_TYPES,
       sdSlots: sdSlots,
+      sdTypes: SD_TYPES,
       gold: document.getElementById('gold').value,
       dollar: document.getElementById('dollar').value,
       inverse: document.getElementById('inverse').value,
       bondSlots: bondSlots,
+      bondTypes: BOND_TYPES,
       savingSlots: savingSlots,
       savingTypes: SAVING_TYPES,
       otherSlots: otherSlots,
       otherTypes: OTHER_TYPES,
-      tRisk: tRisk, tHedgeInRisk: tHedgeInRisk, bondIsRisk: bondIsRisk,
+      tRisk: tRisk, tHedgeInRisk: tHedgeInRisk, tOvsInStock: tOvsInStock, bondIsRisk: bondIsRisk,
+      viewMode: viewMode,
       savedAt: new Date().toLocaleString('ko-KR')
     };
     try {
@@ -824,33 +1103,36 @@
   function loadData() {
     try {
       var raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) { setSaveDot('', '저장된 데이터 없음'); renderSgSlots(); renderSdSlots(); renderBondSlots(); renderSavingCats(); renderSavingSlots(); renderOtherCats(); renderOtherSlots(); liveOther(); return; }
+      if (!raw) { setSaveDot('', '저장된 데이터 없음'); renderSgCats(); renderSgSlots(); renderSdCats(); renderSdSlots(); renderBondCats(); renderBondSlots(); renderSavingCats(); renderSavingSlots(); renderOtherCats(); renderOtherSlots(); liveOther(); return; }
       var d = JSON.parse(raw);
       var ids = ['gold','dollar','inverse'];
       ids.forEach(function(id){ if (d[id] !== undefined) document.getElementById(id).value = d[id]; });
 
-      // 주식 슬롯 복원 (신규 포맷) / 구버전 단일 입력 마이그레이션
-      if (Array.isArray(d.sgSlots)) {
-        sgSlots = d.sgSlots.map(function(s){ return { name: s.name || '', amt: (s.amt === undefined ? '' : s.amt) }; });
-      } else if (d.sg !== undefined && d.sg !== '' && parseFloat(d.sg) > 0) {
-        sgSlots = [{ name: '해외주식', amt: d.sg }];
-      }
-      if (Array.isArray(d.sdSlots)) {
-        sdSlots = d.sdSlots.map(function(s){ return { name: s.name || '', amt: (s.amt === undefined ? '' : s.amt) }; });
-      } else if (d.sd !== undefined && d.sd !== '' && parseFloat(d.sd) > 0) {
-        sdSlots = [{ name: '국내주식', amt: d.sd }];
-      }
-
       // 카테고리 복원 (편집/추가된 드롭다운)
+      if (Array.isArray(d.sgTypes) && d.sgTypes.length) SG_TYPES = d.sgTypes.slice();
+      if (Array.isArray(d.sdTypes) && d.sdTypes.length) SD_TYPES = d.sdTypes.slice();
+      if (Array.isArray(d.bondTypes) && d.bondTypes.length) BOND_TYPES = d.bondTypes.slice();
       if (Array.isArray(d.savingTypes) && d.savingTypes.length) SAVING_TYPES = d.savingTypes.slice();
       if (Array.isArray(d.otherTypes) && d.otherTypes.length) OTHER_TYPES = d.otherTypes.slice();
 
+      // 주식 슬롯 복원 (신규 포맷) / 구버전 단일 입력 마이그레이션
+      if (Array.isArray(d.sgSlots)) {
+        sgSlots = d.sgSlots.map(function(s){ return { name: s.name || '', type: s.type || SG_TYPES[0], amt: (s.amt === undefined ? '' : s.amt) }; });
+      } else if (d.sg !== undefined && d.sg !== '' && parseFloat(d.sg) > 0) {
+        sgSlots = [{ name: '해외주식', type: SG_TYPES[0], amt: d.sg }];
+      }
+      if (Array.isArray(d.sdSlots)) {
+        sdSlots = d.sdSlots.map(function(s){ return { name: s.name || '', type: s.type || SD_TYPES[0], amt: (s.amt === undefined ? '' : s.amt) }; });
+      } else if (d.sd !== undefined && d.sd !== '' && parseFloat(d.sd) > 0) {
+        sdSlots = [{ name: '국내주식', type: SD_TYPES[0], amt: d.sd }];
+      }
+
       // 슬롯 복원 (신규 포맷)
       if (Array.isArray(d.bondSlots)) {
-        bondSlots = d.bondSlots.map(function(s){ return { name: s.name || '', amt: (s.amt === undefined ? '' : s.amt) }; });
+        bondSlots = d.bondSlots.map(function(s){ return { name: s.name || '', type: s.type || BOND_TYPES[0], amt: (s.amt === undefined ? '' : s.amt) }; });
       } else if (d.bond !== undefined && d.bond !== '' && parseFloat(d.bond) > 0) {
         // 구버전 단일 채권 → 섹터 슬롯 1개로 이전
-        bondSlots = [{ name: '채권', amt: d.bond }];
+        bondSlots = [{ name: '채권', type: BOND_TYPES[0], amt: d.bond }];
       }
       if (Array.isArray(d.savingSlots)) {
         savingSlots = d.savingSlots.map(function(s){ return { name: s.name || '', type: s.type || SAVING_TYPES[0], amt: (s.amt === undefined ? '' : s.amt) }; });
@@ -861,23 +1143,30 @@
       if (Array.isArray(d.otherSlots)) {
         otherSlots = d.otherSlots.map(function(s){ return { name: s.name || '', type: s.type || OTHER_TYPES[0], amt: (s.amt === undefined ? '' : s.amt) }; });
       }
+      renderSgCats();
       renderSgSlots();
+      renderSdCats();
       renderSdSlots();
+      renderBondCats();
       renderBondSlots();
       renderSavingCats();
       renderSavingSlots();
       renderOtherCats();
       renderOtherSlots();
       liveOther();
-
       if (d.tRisk !== undefined)       { tRisk = d.tRisk; updateSlider1UI(); syncPreset1(); }
       if (d.tHedgeInRisk !== undefined){ tHedgeInRisk = d.tHedgeInRisk; updateSlider2UI(); }
+      if (d.tOvsInStock !== undefined) { tOvsInStock = d.tOvsInStock; updateSlider3UI(); syncPreset3(); }
       if (d.bondIsRisk !== undefined && d.bondIsRisk !== bondIsRisk) toggleBond();
+      if (d.viewMode === 'networth' || d.viewMode === 'rebal') {
+        document.getElementById('view_mode').value = d.viewMode;
+        onModeChange(d.viewMode);
+      }
       if (d.savedAt) document.getElementById('last_saved').textContent = '마지막 저장: ' + d.savedAt;
       setSaveDot('saved', '저장된 데이터 불러옴');
       updateFinalSplit();
       live();
-    } catch(e) { setSaveDot('', '불러오기 실패'); renderSgSlots(); renderSdSlots(); renderBondSlots(); renderSavingCats(); renderSavingSlots(); renderOtherCats(); renderOtherSlots(); liveOther(); }
+    } catch(e) { setSaveDot('', '불러오기 실패'); renderSgCats(); renderSgSlots(); renderSdCats(); renderSdSlots(); renderBondCats(); renderBondSlots(); renderSavingCats(); renderSavingSlots(); renderOtherCats(); renderOtherSlots(); liveOther(); }
   }
   function resetAll() {
     if (!confirm('모든 데이터를 초기화할까요?')) return;
@@ -887,10 +1176,16 @@
     bondSlots = [];
     savingSlots = [];
     otherSlots = [];
+    SG_TYPES = ['지수ETF', '개별주', '테마ETF'];
+    SD_TYPES = ['지수ETF', '개별주', '배당주'];
+    BOND_TYPES = ['국채', '회사채', '단기채'];
     SAVING_TYPES = ['청년미래적금', '2금융권 정기예금'];
     OTHER_TYPES = ['부동산', '기타'];
+    renderSgCats();
     renderSgSlots();
+    renderSdCats();
     renderSdSlots();
+    renderBondCats();
     renderBondSlots();
     renderSavingCats();
     renderSavingSlots();
@@ -898,6 +1193,10 @@
     renderOtherSlots();
     liveOther();
     if (bondIsRisk) toggleBond();
+    tOvsInStock = 65; updateSlider3UI(); syncPreset3();
+    viewMode = 'rebal';
+    document.getElementById('view_mode').value = 'rebal';
+    onModeChange('rebal');
     localStorage.removeItem(STORAGE_KEY);
     document.getElementById('output').style.display = 'none';
     document.getElementById('last_saved').textContent = '';
@@ -910,7 +1209,7 @@
     document.getElementById('save_status').textContent = msg;
   }
 
-  window.addEventListener('DOMContentLoaded', function() { updateFinalSplit(); loadData(); });
+  window.addEventListener('DOMContentLoaded', function() { updateFinalSplit(); updateSlider3UI(); loadData(); });
 </script>
 </body>
 </html>
